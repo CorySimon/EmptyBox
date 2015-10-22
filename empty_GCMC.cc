@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
 
     // set up output file
     char outputname[1024];
-    sprintf(outputname, "results_/SIM_U%.2f.txt", U_0);
+    sprintf(outputname, "results/SIM_U%.2f.txt", U_0);
     FILE *outfile;
     if (write_to_file) { 
         outfile = fopen(outputname, "w");
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
         std::vector<Particle> methanes;
 
         double P = pressures[i_P]; // get pressure (Pa)
-        printf("\tGCMC simulation at P = %f Pa\n", P);
+        printf("GCMC simulation at P = %f Pa\n", P);
 
         // Initialize statistics
         double N_avg = 0.0;
