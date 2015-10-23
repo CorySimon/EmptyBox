@@ -1,8 +1,8 @@
 #include <stdlib.h>
-#include<chrono>
+#include <chrono>
 #include <stdio.h>
 #include <iostream>
-#include<random>
+#include <random>
 #include <math.h>
 #include <time.h>
 #include <vector>
@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
 
     // set up output file
     char outputname[1024];
-    sprintf(outputname, "results/SIM_U%.2f.txt", U_0);
+    sprintf(outputname, "results_empty_box/SIM_U%.2f.txt", U_0);
     FILE *outfile;
     if (write_to_file) { 
         outfile = fopen(outputname, "w");
