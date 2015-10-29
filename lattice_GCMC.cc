@@ -1,6 +1,7 @@
 // GCMC on FCC lattice.
 #include <stdlib.h>
 #include <chrono>
+#include <cstring>
 #include <stdio.h>
 #include <random>
 #include <sstream> // string stream
@@ -23,10 +24,17 @@ const double r_c2 = r_c * r_c;  // LJ cutoff radius, squared
 
 // Thermodynamic parameters
 const double T = 298.0;  // temperature, K
+// we work in the following units:
+//    length: A
+//    Temperature: K
+//    matter: number of particles
+// kb = 1.38e-23 J/K = (Pa * m3) / K
+//    = 1.38e7 (Pa * A3) / K
+const double kb = 1.3806448e7;
 
 // Simulation parameters
-const bool GG = true; // include GG interactions?
-const bool verbose = false; // verbose mode
+const bool verbose = true; // verbose mode
+const bool debug = false; // very verbos, for debugging
 const bool write_to_file = true;
 
 double V_gg(double r2) { 
@@ -64,22 +72,19 @@ double site_site_r2(int i, int j, Site * lattice_sites , double L) {
 
 int main(int argc, char *argv[])  {
     // set up files in case
-    FILE * debugfile;
-    if (GG == false) 
-        printf("\tGG interactions OFF!\n");
     if (verbose) {
-        debugfile = fopen("debug.txt", "w");
-        printf("Verbose, debug mode. See debug.txt\n");
+        printf("Verbos emode.\n");
     }
     
     //
     // check for correct usage, take input arguments
     //
-    if (argc != 4) {
-        printf("Run as:\n./this_code arg1 arg2 arg3\n");
+    if (argc != 5) {
+        printf("Run as:\n./this_code arg1 arg2 arg3 arg4\n");
         printf("\targ1: energy of field (K)\n");
         printf("\targ2: # of Monte Carlo moves per lattice site\n");
         printf("\targ3: site-site distance in FCC lattice\n");
+        printf("\targ4: guest-guest interactions? 0 or 1\n");
         exit(EXIT_FAILURE);
     }
   
@@ -90,6 +95,15 @@ int main(int argc, char *argv[])  {
     assert(N_trials_per_site > 0);
     // closest site-to-site distance (A) (so we know which FCC lattice to read in)
     double d_sites = atof(argv[3]);
+    bool GG;  // guest-guest interactions on or off
+    if (atoi(argv[4]) == 1) {
+        printf("Guest-guest interactions ON\n");
+        GG = true;
+    }
+    else {
+        printf("Guest-guest interactions OFF\n");
+        GG = false;
+    }
 
     //
     // Import site positions from scaled and replicated FCC lattice
@@ -145,6 +159,8 @@ int main(int argc, char *argv[])  {
         if (verbose)
             printf("\tSite %d: (x_f, y_f, z_f) = (%f, %f, %f)\n", i, x_f, y_f, z_f);
     }
+    // volume of lattice site
+    const double site_volume = volume / N_sites;
  
     //
     // Set up variables
@@ -206,8 +222,6 @@ int main(int argc, char *argv[])  {
     for (int i_P = 0; i_P < pressures.size(); i_P++) {
         double P = pressures[i_P]; //get pressure
         printf("\t\tStarting Pressure %f\n", P);
-        if (verbose == true) 
-            fprintf(debugfile,"------\n------\n Pressure %f Pa\n", pressures[i_P]);
         
         // initialize
         double N_avg = 0.0;
@@ -223,7 +237,7 @@ int main(int argc, char *argv[])  {
         std::vector<int> occupancy_list;
   
         for (int trial = 0; trial < N_trials; trial++) {
-            if (verbose) {
+            if (debug) {
                 printf("Trial %d. Now: N_ch4 = %d. Occupancy list: ", trial, N_ch4);
                 for (int kk = 0 ; kk < N_ch4; kk++)
                     printf("%d  ", occupancy_list[kk]);
@@ -238,7 +252,7 @@ int main(int argc, char *argv[])  {
                 N_samples++;
             }
       
-            // select a site at random, switch its occupancy
+            // select a move at random
             int insert_or_delete = movepicker(generator);
 
             //
@@ -263,14 +277,14 @@ int main(int argc, char *argv[])  {
                     }
                 }
                 
-                if (verbose) 
+                if (debug) 
                     printf("\tInsertion at site %d (unoccupied). E_gg = %f K.\n",
                         which_site , E_gg);
                                 
                 // energy of particle we propose to insert with other guests + field energy
                 double E = E_gg + U_0; 
 
-                double acceptance_insertion = P * volume / ((N_ch4 + 1) * 1.3806488e7 * T ) * exp(-E / T);
+                double acceptance_insertion = P * volume / ((N_ch4 + 1) * kb * T ) * exp(-E / T);
                 if (uniform01(generator) < acceptance_insertion) { 
                     // accept insertion
                     lattice_sites[which_site].occ = true;
@@ -278,7 +292,7 @@ int main(int argc, char *argv[])  {
                     occupancy_list.push_back(which_site);
                     N_ch4++;
                     N_accept++;
-                    if (verbose == true) 
+                    if (debug) 
                         printf("\t\tInsertion accepted with probability %f.\n",
                             acceptance_insertion);
                 } 
@@ -306,14 +320,14 @@ int main(int argc, char *argv[])  {
                     }
                 }
                 
-                if (verbose)
+                if (debug)
                     printf("\tDeletion of methane %d in site %d proposed, E_gg = %f A.\n",
                         which_ch4 , which_site, E_gg);
 
                 // energy of particle we are proposing to delete
                 double E = E_gg + U_0; 
 
-                double acceptance_del = (N_ch4 * 1.3806488e7 * T ) / (P * volume) * exp(E / T);
+                double acceptance_del = (N_ch4 * kb * T ) / (P * volume) * exp(E / T);
                 if (uniform01(generator) < acceptance_del) { 
                     // accept deletion
                     lattice_sites[which_site].occ = false;
@@ -323,7 +337,7 @@ int main(int argc, char *argv[])  {
                     N_ch4--;
                     N_accept++;
 
-                    if (verbose) 
+                    if (debug) 
                         printf("\t\tParticle with E_gg = %f deleted with probability %f accepted.\n",
                             E_gg, acceptance_del);
                 }
@@ -334,7 +348,10 @@ int main(int argc, char *argv[])  {
 
         if (verbose) {
             printf("\t\tDone. %d trial moves, %d equilibration steps, %d post-equilibration, %d accepted\n", N_trials, N_equil_trials, N_samples, N_accept);
-            printf("\t\t<N>(P=%f bar) = %.3f\n", P / 100000.0, N_avg);
+            printf("\t\t<N>(P=%f bar) = %.3f / %d sites\n", P / 100000.0, N_avg, N_sites);
+            double langmuirK = site_volume * exp(-U_0 / T) / (kb * T);
+            printf("\t\t\tLangmuir K = %e\n", langmuirK);
+            printf("\t\t\tLangmuir predicted <N>(P=%f bar) = %f\n", P / 100000.0, N_sites * langmuirK * P / (1.0 + langmuirK * P)); 
             printf("\tIG predicted: <N> = %f\n" , P * L*L*L / T /8.314 *6.022e-7);
         }
         double vSTPv = N_avg / volume / 6.022 * 1e7 *22.4/1000.0;
