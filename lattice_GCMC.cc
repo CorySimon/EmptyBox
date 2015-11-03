@@ -73,7 +73,7 @@ double site_site_r2(int i, int j, Site * lattice_sites , double L) {
 int main(int argc, char *argv[])  {
     // set up files in case
     if (verbose) {
-        printf("Verbos emode.\n");
+        printf("Verbose mode.\n");
     }
     
     //
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])  {
         lattice_sites[i].z = L * z_f;
         lattice_sites[i].occ = false;
 
-        if (verbose)
+        if (debug)
             printf("\tSite %d: (x_f, y_f, z_f) = (%f, %f, %f)\n", i, x_f, y_f, z_f);
     }
     // volume of lattice site
