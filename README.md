@@ -1,6 +1,6 @@
 For reproducible research, this repository contains codes to reproduce the results in Scenarios 1 and 2 of the following article:
 
-D. Gomez-Gualdron, C. Simon, W. Lassman, D. Chen, R. L. Martin, O. Farha, B. Smit, R. Snurr. Impact of the strength and spatial distribution of adsorption sites on methane deliverable capacity in nanoporous materials. *Submitted* (2015)
+D. Gomez-Gualdron, C. Simon, W. Lassman, D. Chen, R. L. Martin, O. Farha, B. Smit, R. Snurr. Impact of the strength and spatial distribution of adsorption sites on methane deliverable capacity in nanoporous materials. (2016) *Chemical Engineering Science* [Link](http://dx.doi.org/10.1016/j.ces.2016.02.030)
 
 The simulation codes are written in C++. To compile, type `make`.
 
